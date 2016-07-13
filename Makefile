@@ -610,7 +610,7 @@ OPTIONS_LDFLAGS += $(LUA_LD_FLAGS) -l$(LUA_LIB_NAME) -lm
 ifneq ($(USE_DL),)
 OPTIONS_LDFLAGS += -ldl
 endif
-OPTIONS_OBJS    += src/hlua.o src/hlua_fcn.o
+OPTIONS_OBJS    += src/hlua.o src/hlua_fcn.o src/dydy.o
 endif
 
 ifneq ($(USE_DEVICEATLAS),)

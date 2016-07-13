@@ -706,6 +706,9 @@ void init(int argc, char **argv)
 	/* Initialise lua. */
 	hlua_init();
 
+    /* Initialise dydy. */
+    dydy_init();
+
 	global.tune.options |= GTUNE_USE_SELECT;  /* select() is always available */
 #if defined(ENABLE_POLL)
 	global.tune.options |= GTUNE_USE_POLL;
