@@ -5,15 +5,27 @@
 
 static unsigned int dydy_timeout_applet = 4000; /* applet timeout. */
 
+static int dydy_applet_tcp_init(struct appctx *ctx, struct proxy *px, struct stream *strm) {
+	struct stream_interface *si = ctx->owner;
+
+	/* Wakeup the applet ASAP. */
+	si_applet_cant_get(si);
+	si_applet_cant_put(si);
+
+	return 1;
+}
+
 static void dydy_applet_tcp_fct(struct appctx *ctx) {
 	/* If the stream is disconnect or closed, ldo nothing. */
     fprintf(stderr, "applet invoked...\n");
 
 	struct stream_interface *si = ctx->owner;
 	struct channel *chn = si_ic(si);
+	struct channel *res = si_ic(si);
 	size_t len = strlen("hello\n");
 	int max;
 
+	/* If the stream is disconnect or closed, ldo nothing. */
 	if (unlikely(si->state == SI_ST_DIS || si->state == SI_ST_CLO))
 		return;
 
@@ -23,7 +35,9 @@ static void dydy_applet_tcp_fct(struct appctx *ctx) {
 		max = len;
 	bi_putblk(chn, "hello\n", max);
 
-	si_shutw(si);
+	/* eat the whole request */
+	bo_skip(si_oc(si), si_ob(si)->o);
+	res->flags |= CF_READ_NULL;
 	si_shutr(si);
 }
 
@@ -37,6 +51,7 @@ static enum act_parse_ret action_register_service_tcp(
 	rule->applet.obj_type = OBJ_TYPE_APPLET;
 	rule->applet.name = "dydy";
 	rule->applet.fct = dydy_applet_tcp_fct;
+	rule->applet.init = dydy_applet_tcp_init;
 	rule->applet.timeout = dydy_timeout_applet;
 
 	return 0;
@@ -56,6 +71,7 @@ static int dydy_load(char **args, int section_type, struct proxy *curpx,
 	/* List head */
 	akl->list.n = akl->list.p = NULL;
 
+	/* converter keyword */
 	len = strlen("dydy.") + strlen(name) + 1;
 	akl->kw[0].kw = calloc(1, len);
 
