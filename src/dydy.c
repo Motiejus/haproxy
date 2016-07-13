@@ -7,6 +7,7 @@ static unsigned int dydy_timeout_applet = 4000; /* applet timeout. */
 
 static void dydy_applet_tcp_fct(struct appctx *ctx) {
 	/* If the stream is disconnect or closed, ldo nothing. */
+    fprintf(stderr, "applet invoked...\n");
 
 	struct stream_interface *si = ctx->owner;
 	struct channel *chn = si_ic(si);
@@ -41,7 +42,11 @@ static enum act_parse_ret action_register_service_tcp(
 	return 0;
 }
 
-static int dydy_register_service() {
+static int dydy_load(char **args, int section_type, struct proxy *curpx,
+                     struct proxy *defpx, const char *file, int line,
+                     char **err)
+{
+    fprintf(stderr, "started dydy_load...\n");
 	struct action_kw_list *akl;
 	const char *name = "dydy";
 	int len;
@@ -66,15 +71,6 @@ static int dydy_register_service() {
 	/* Register this new converter */
 	service_keywords_register(akl);
 
-	return 0;
-}
-
-static int dydy_load(char **args, int section_type, struct proxy *curpx,
-                     struct proxy *defpx, const char *file, int line,
-                     char **err)
-{
-    fprintf(stderr, "started dydy_load...\n");
-	dydy_register_service();
     return 0;
 }
 
