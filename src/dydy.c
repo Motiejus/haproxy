@@ -72,7 +72,7 @@ static int dydy_load(char **args, int section_type, struct proxy *curpx,
 	struct action_kw_list *akl;
 	int len;
 	void *handle; // dynamic library
-	const char *name = "dydy";
+	const char *name = "stub";
     fprintf(stderr, "loading %s...\n", args[1]);
 
 	akl = calloc(1, sizeof(*akl) + sizeof(struct action_kw) * 2);
