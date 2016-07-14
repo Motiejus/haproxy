@@ -7,6 +7,8 @@
 
 static unsigned int dydy_timeout_applet = 4000; /* applet timeout. */
 
+static char* (*user_fn)(void); /* function which returns "hello" */
+
 static int dydy_applet_tcp_init(struct appctx *ctx, struct proxy *px, struct stream *strm) {
 	struct stream_interface *si = ctx->owner;
 
@@ -18,14 +20,13 @@ static int dydy_applet_tcp_init(struct appctx *ctx, struct proxy *px, struct str
 }
 
 static void dydy_applet_tcp_fct(struct appctx *ctx) {
-	/* If the stream is disconnect or closed, ldo nothing. */
-
 	struct stream_interface *si;
 	struct channel *chn;
 	struct channel *res;
 	int max;
-	size_t len = strlen("hello\n");
-    fprintf(stderr, "applet invoked...\n");
+	char *str = user_fn();
+	//char *str = "hello.o!\n";
+	size_t len = strlen(str);
 
 	si = ctx->owner;
 	chn = si_ic(si);
@@ -37,9 +38,10 @@ static void dydy_applet_tcp_fct(struct appctx *ctx) {
 
 	/* Execute the function. */
 	max = channel_recv_max(chn);
+    fprintf(stderr, "max: %d, len: %d\n", max, (int)len);
 	if (max > (len))
 		max = len;
-	bi_putblk(chn, "hello\n", max);
+	bi_putblk(chn, str, max);
 
 	/* eat the whole request */
 	bo_skip(si_oc(si), si_ob(si)->o);
@@ -70,7 +72,6 @@ static int dydy_load(char **args, int section_type, struct proxy *curpx,
 	struct action_kw_list *akl;
 	int len;
 	void *handle; // dynamic library
-	char* (*user_fn)(void); // function which returns "hello"
 	const char *name = "dydy";
     fprintf(stderr, "loading %s...\n", args[1]);
 
