@@ -1,3 +1,5 @@
+#include <dlfcn.h>
+
 #include <common/cfgparse.h>
 #include <proto/proto_tcp.h>
 #include <proto/stream.h>
@@ -17,13 +19,17 @@ static int dydy_applet_tcp_init(struct appctx *ctx, struct proxy *px, struct str
 
 static void dydy_applet_tcp_fct(struct appctx *ctx) {
 	/* If the stream is disconnect or closed, ldo nothing. */
+
+	struct stream_interface *si;
+	struct channel *chn;
+	struct channel *res;
+	int max;
+	size_t len = strlen("hello\n");
     fprintf(stderr, "applet invoked...\n");
 
-	struct stream_interface *si = ctx->owner;
-	struct channel *chn = si_ic(si);
-	struct channel *res = si_ic(si);
-	size_t len = strlen("hello\n");
-	int max;
+	si = ctx->owner;
+	chn = si_ic(si);
+	res = si_ic(si);
 
 	/* If the stream is disconnect or closed, ldo nothing. */
 	if (unlikely(si->state == SI_ST_DIS || si->state == SI_ST_CLO))
@@ -61,10 +67,12 @@ static int dydy_load(char **args, int section_type, struct proxy *curpx,
                      struct proxy *defpx, const char *file, int line,
                      char **err)
 {
-    fprintf(stderr, "started dydy_load...\n");
 	struct action_kw_list *akl;
-	const char *name = "dydy";
 	int len;
+	void *handle; // dynamic library
+	char* (*user_fn)(void); // function which returns "hello"
+	const char *name = "dydy";
+    fprintf(stderr, "loading %s...\n", args[1]);
 
 	akl = calloc(1, sizeof(*akl) + sizeof(struct action_kw) * 2);
 
@@ -79,6 +87,16 @@ static int dydy_load(char **args, int section_type, struct proxy *curpx,
 
 	akl->kw[0].parse = action_register_service_tcp;
 	akl->kw[0].match_pfx = 0;
+
+	/* Load the dynamic library */
+	handle = dlopen(args[1], RTLD_LAZY);
+	if (!handle) {
+		fprintf(stderr, "%s\n", dlerror());
+		exit(EXIT_FAILURE);
+	}
+	dlerror();    /* Clear any existing error */
+	*(void **) (&user_fn) = dlsym(handle, "user_fn");
+
 	akl->kw[0].private = NULL;
 
 	/* End of array. */
